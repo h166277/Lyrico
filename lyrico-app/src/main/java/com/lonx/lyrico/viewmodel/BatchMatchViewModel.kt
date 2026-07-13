@@ -7,6 +7,7 @@ import com.lonx.lyrico.data.model.BatchMatchConfig
 import com.lonx.lyrico.data.model.BatchMatchConfigDefaults
 import com.lonx.lyrico.data.model.BatchTaskStatus
 import com.lonx.lyrico.data.model.BatchTaskType
+import com.lonx.lyrico.data.model.FieldPriorityTemplate
 import com.lonx.lyrico.data.model.lyrics.LyricRenderConfig
 import com.lonx.lyrico.data.model.entity.SongEntity
 import com.lonx.lyrico.data.repository.BatchTaskRepository
@@ -50,6 +51,9 @@ class BatchMatchViewModel(
 
     val batchMatchConfig: StateFlow<BatchMatchConfig> = settingsRepository.batchMatchConfig
         .stateIn(viewModelScope, SharingStarted.Eagerly, BatchMatchConfigDefaults.DEFAULT_CONFIG)
+    val fieldPriorityTemplates: StateFlow<List<FieldPriorityTemplate>> =
+        settingsRepository.fieldPriorityTemplates
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val allSources: StateFlow<List<SearchSource>> =
         searchSourceProvider.observeAllSources()
@@ -171,11 +175,18 @@ class BatchMatchViewModel(
             }
 
             val currentOrderIds = buildEnabledSourceOrderIds()
+            val selectedTemplate = fieldPriorityTemplates.value.firstOrNull {
+                it.id == matchConfig.fieldPriorityTemplateId
+            }
+            val normalizedMatchConfig = matchConfig.copy(
+                fieldPriorityTemplateId = selectedTemplate?.id
+            )
             val configJson = Json.encodeToString(
                 MatchMetadataTaskConfig.serializer(),
                 MatchMetadataTaskConfig(
-                    matchConfig = matchConfig,
+                    matchConfig = normalizedMatchConfig,
                     separator = separator.value,
+                    fieldPriorityTemplate = selectedTemplate,
                     enabledSourceOrderIds = currentOrderIds,
                     sourceSettings = sourceSettings.value.mapValues { it.value.values },
                     lyricRenderConfig = lyricRenderConfig.value,

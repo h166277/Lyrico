@@ -3,6 +3,7 @@ package com.lonx.lyrico.data.repository
 import com.lonx.lyrico.data.model.BatchMatchConfig
 import com.lonx.lyrico.data.model.CharacterMappingConfig
 import com.lonx.lyrico.data.model.ConversionMode
+import com.lonx.lyrico.data.model.FieldPriorityTemplate
 import com.lonx.lyrico.data.model.lyrics.LyricFormat
 import com.lonx.lyrico.data.model.lyrics.LyricLineTrack
 import com.lonx.lyrico.data.model.lyrics.LyricRenderConfig
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface SettingsRepository {
     val batchMatchConfig: Flow<BatchMatchConfig>
+    val fieldPriorityTemplates: Flow<List<FieldPriorityTemplate>>
     val metadataFieldWriteRules: Flow<List<PluginMetadataFieldWriteRule>>
     val sourceSettingsByIdFlow: Flow<Map<String, SourceRuntimeConfig>>
 
@@ -95,6 +97,8 @@ interface SettingsRepository {
     suspend fun exportSettings(): String
     suspend fun importSettings(jsonString: String): Boolean
     suspend fun saveBatchMatchConfig(config: BatchMatchConfig)
+    suspend fun saveFieldPriorityTemplates(templates: List<FieldPriorityTemplate>)
+    suspend fun deleteFieldPriorityTemplate(templateId: String)
     suspend fun saveMetadataFieldWriteRules(rules: List<PluginMetadataFieldWriteRule>)
     suspend fun saveSourceSettings(sourceId: String, values: Map<String, String>)
     suspend fun getSourceSettings(sourceId: String): SourceRuntimeConfig

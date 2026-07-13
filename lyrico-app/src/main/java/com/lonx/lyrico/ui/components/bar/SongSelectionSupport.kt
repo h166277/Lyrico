@@ -139,6 +139,7 @@ fun BoxScope.SongBatchSelectionActions(
     val batchLyricsFormatUiState by batchLyricsFormatViewModel.uiState.collectAsStateWithLifecycle()
     val batchExportUiState by batchExportViewModel.uiState.collectAsStateWithLifecycle()
     val batchMatchConfig by batchMatchViewModel.batchMatchConfig.collectAsStateWithLifecycle()
+    val fieldPriorityTemplates by batchMatchViewModel.fieldPriorityTemplates.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showBatchDeleteDialog by remember { mutableStateOf(false) }
     var pendingExportTaskType by remember { mutableStateOf<BatchTaskType?>(null) }
@@ -174,6 +175,7 @@ fun BoxScope.SongBatchSelectionActions(
     BatchMatchConfigBottomSheet(
         show = batchMatchUiState.showBatchConfigDialog,
         initialConfig = batchMatchConfig,
+        fieldPriorityTemplates = fieldPriorityTemplates,
         onDismissRequest = { config ->
             batchMatchViewModel.saveBatchMatchConfig(config)
             batchMatchViewModel.closeBatchMatchConfig()

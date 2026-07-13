@@ -58,6 +58,7 @@ import com.ramcosta.composedestinations.generated.destinations.ArtistSplitSettin
 import com.ramcosta.composedestinations.generated.destinations.BatchTaskListDestination
 import com.ramcosta.composedestinations.generated.destinations.CustomTagManagementDestination
 import com.ramcosta.composedestinations.generated.destinations.EditFieldVisibilityDestination
+import com.ramcosta.composedestinations.generated.destinations.FieldPriorityTemplatesDestination
 import com.ramcosta.composedestinations.generated.destinations.FolderManagerDestination
 import com.ramcosta.composedestinations.generated.destinations.LyricsCleanupRulesDestination
 import com.ramcosta.composedestinations.generated.destinations.PluginManagerDestination
@@ -396,6 +397,11 @@ fun SettingsScreen(
                     ArrowPreference(
                         title = stringResource(R.string.plugin_manager_title),
                         onClick = { navigator.navigate(PluginManagerDestination()) }
+                    )
+                    ArrowPreference(
+                        title = stringResource(R.string.field_priority_templates_title),
+                        summary = stringResource(R.string.field_priority_templates_summary),
+                        onClick = { navigator.navigate(FieldPriorityTemplatesDestination()) }
                     )
                     WindowDropdownPreference(
                         title = stringResource(R.string.search_source_tab_style),

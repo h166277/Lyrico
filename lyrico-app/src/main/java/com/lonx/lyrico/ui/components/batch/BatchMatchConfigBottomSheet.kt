@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.lonx.lyrico.R
 import com.lonx.lyrico.data.model.BatchMatchConfig
 import com.lonx.lyrico.data.model.BatchMatchConfigDefaults
+import com.lonx.lyrico.data.model.FieldPriorityTemplate
 import com.lonx.lyrico.data.model.metadata.MetadataFieldTarget
 import com.lonx.lyrico.data.model.metadata.MetadataWriteMode
 import com.lonx.lyrico.ui.components.base.YesNoBottomSheet
@@ -41,6 +42,7 @@ import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.CheckboxPreference
+import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.roundToInt
 
@@ -49,6 +51,7 @@ import kotlin.math.roundToInt
 fun BatchMatchConfigBottomSheet(
     show: Boolean,
     initialConfig: BatchMatchConfig,
+    fieldPriorityTemplates: List<FieldPriorityTemplate>,
     onDismissRequest: (BatchMatchConfig) -> Unit,
     onConfirm: (BatchMatchConfig) -> Unit
 ) {
@@ -81,6 +84,28 @@ fun BatchMatchConfigBottomSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
             ) {
+                val templateItems = listOf(stringResource(R.string.field_priority_template_global_order)) +
+                    fieldPriorityTemplates.map { it.name }
+                val selectedTemplateIndex = fieldPriorityTemplates.indexOfFirst {
+                    it.id == config.fieldPriorityTemplateId
+                }.let { if (it < 0) 0 else it + 1 }
+                Card(
+                    modifier = Modifier.padding(bottom = 12.dp),
+                    colors = CardDefaults.defaultColors(
+                        color = MiuixTheme.colorScheme.secondaryContainer,
+                    )
+                ) {
+                    WindowDropdownPreference(
+                        title = stringResource(R.string.field_priority_template_selector),
+                        items = templateItems,
+                        selectedIndex = selectedTemplateIndex,
+                        onSelectedIndexChange = { index ->
+                            config = config.copy(
+                                fieldPriorityTemplateId = fieldPriorityTemplates.getOrNull(index - 1)?.id
+                            )
+                        }
+                    )
+                }
                 Card(
                     modifier = Modifier.padding(bottom = 12.dp),
                     colors = CardDefaults.defaultColors(

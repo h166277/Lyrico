@@ -13,7 +13,8 @@ import kotlinx.serialization.Serializable
 data class BatchMatchConfig(
     val targetModes: Map<MetadataFieldTarget, MetadataWriteMode>,
     val concurrency: Int = 3,
-    val preferFileName: Boolean = false
+    val preferFileName: Boolean = false,
+    val fieldPriorityTemplateId: String? = null
 ) : Parcelable
 
 data class BatchMatchTargetGroup(

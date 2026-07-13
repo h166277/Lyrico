@@ -36,6 +36,19 @@
     <string name="no_songs_in_folder">No songs in this folder</string>
     <!-- General -->
     <string name="settings_title">Settings</string>
+    <string name="field_priority_templates_title">Field Priority Templates</string>
+    <string name="field_priority_templates_summary">Choose plugin priority separately for each batch-match field</string>
+    <string name="field_priority_templates_empty">No templates yet</string>
+    <string name="field_priority_template_create">New Template</string>
+    <string name="field_priority_template_rename">Rename Template</string>
+    <string name="field_priority_template_delete_message">Delete this template? Batch matching will fall back to global plugin order.</string>
+    <string name="field_priority_template_fields">%1$d configured fields</string>
+    <string name="field_priority_template_editor_summary">Set the plugin order used for each field. Plugins without a result fall back to the next plugin.</string>
+    <string name="field_priority_template_order_summary">Use the arrows to set plugin priority.</string>
+    <string name="field_priority_template_move_up">Up</string>
+    <string name="field_priority_template_move_down">Down</string>
+    <string name="field_priority_template_global_order">Follow global plugin order</string>
+    <string name="field_priority_template_selector">Field priority template</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
 

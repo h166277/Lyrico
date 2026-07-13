@@ -95,6 +95,7 @@ import com.lonx.lyrico.viewmodel.CharacterMappingViewModel
 import com.lonx.lyrico.viewmodel.CustomTagManagementViewModel
 import com.lonx.lyrico.viewmodel.EditFieldVisibilitySettingsViewModel
 import com.lonx.lyrico.viewmodel.EditMetadataViewModel
+import com.lonx.lyrico.viewmodel.FieldPriorityTemplatesViewModel
 import com.lonx.lyrico.viewmodel.FolderManagerViewModel
 import com.lonx.lyrico.viewmodel.LocalSearchViewModel
 import com.lonx.lyrico.viewmodel.PluginViewModel
@@ -296,6 +297,7 @@ val appModule = module {
     viewModel { EditFieldVisibilitySettingsViewModel(get()) }
     viewModel { CustomTagManagementViewModel(get(), get()) }
     viewModel { BatchMatchViewModel(get(), get(), get(), get(), get()) }
+    viewModel { FieldPriorityTemplatesViewModel(get(), get()) }
     viewModel { AppLogViewModel(get(),get()) }
     viewModel { PluginViewModel(get(), get(), get(), get(), get()) }
 

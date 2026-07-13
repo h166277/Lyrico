@@ -29,6 +29,19 @@
 
     <!-- 通用 -->
     <string name="settings_title">设置</string>
+    <string name="field_priority_templates_title">字段优先级模板</string>
+    <string name="field_priority_templates_summary">为批量匹配的每个字段单独设置插件优先级</string>
+    <string name="field_priority_templates_empty">尚未创建模板</string>
+    <string name="field_priority_template_create">新建模板</string>
+    <string name="field_priority_template_rename">重命名模板</string>
+    <string name="field_priority_template_delete_message">删除此模板？批量匹配将回退到全局插件顺序。</string>
+    <string name="field_priority_template_fields">已配置 %1$d 个字段</string>
+    <string name="field_priority_template_editor_summary">为每个字段设置插件使用顺序。插件没有结果时会自动尝试下一个插件。</string>
+    <string name="field_priority_template_order_summary">使用箭头调整插件优先级。</string>
+    <string name="field_priority_template_move_up">上移</string>
+    <string name="field_priority_template_move_down">下移</string>
+    <string name="field_priority_template_global_order">跟随全局插件顺序</string>
+    <string name="field_priority_template_selector">字段优先级模板</string>
     <string name="cancel">取消</string>
     <string name="confirm">确认</string>
 

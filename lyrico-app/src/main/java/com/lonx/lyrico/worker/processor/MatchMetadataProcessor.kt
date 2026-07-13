@@ -3,6 +3,7 @@ package com.lonx.lyrico.worker.processor
 import android.util.Log
 import com.lonx.audiotag.model.AudioTagData
 import com.lonx.lyrico.data.model.BatchMatchConfig
+import com.lonx.lyrico.data.model.FieldPriorityTemplate
 import com.lonx.lyrico.data.model.ScoredSearchResult
 import com.lonx.lyrico.data.model.entity.BatchTaskEntity
 import com.lonx.lyrico.data.model.entity.BatchTaskItemEntity
@@ -118,7 +119,7 @@ class MatchMetadataProcessor(
 
         var bestMatch: ScoredSearchResult? = null
         var bestMatchDetail: MatchScoreDetail? = null
-        val allScoredResults = mutableListOf<ScoredSearchResult>()
+        val sourceBestCandidates = mutableListOf<Pair<ScoredSearchResult, MatchScoreDetail>>()
 
         searchLoop@ for ((queryIndex, query) in queries.withIndex()) {
             var queryBest: ScoredSearchResult? = null
@@ -186,10 +187,6 @@ class MatchMetadataProcessor(
                     relatedId = source.id
                 )
 
-                allScoredResults += sourceResults.map { (scoredResult, _) ->
-                    scoredResult
-                }
-
                 val sourceBest = sourceResults.maxByOrNull { (_, detail) ->
                     detail.finalScore
                 }
@@ -197,6 +194,7 @@ class MatchMetadataProcessor(
                 if (sourceBest != null) {
                     val currentScoredResult = sourceBest.first
                     val currentDetail = sourceBest.second
+                    sourceBestCandidates += currentScoredResult to currentDetail
 
                     if (
                         queryBest == null ||
@@ -215,6 +213,7 @@ class MatchMetadataProcessor(
                     }
 
                     if (
+                        config.fieldPriorityTemplate == null &&
                         currentDetail.finalScore >= 0.92 &&
                         currentDetail.textScore >= 0.86
                     ) {
@@ -280,18 +279,29 @@ class MatchMetadataProcessor(
 
         onProgress(0.55f)
 
-        val newLyrics = if (shouldWriteLyrics && lyricConfig != null) {
+        val qualityApprovedCandidates = sourceBestCandidates
+            .filter { (_, detail) -> detail.finalScore >= 0.76 && detail.textScore >= 0.72 }
+            .map { (candidate, _) -> candidate }
+        val selectedByTarget = config.fieldPriorityTemplate?.let { template ->
+            FieldCandidateResolver.resolve(
+                candidates = qualityApprovedCandidates,
+                targetModes = plan.targetModes,
+                template = template,
+                globalOrder = enabledSourceOrder
+            )
+        } ?: plan.targetModes.keys.associateWith { finalMatch }
+        val lyricsMatch = selectedByTarget[MetadataFieldTarget.LYRICS]
+
+        val newLyrics = if (shouldWriteLyrics && lyricConfig != null && lyricsMatch?.source != null) {
             try {
                 coroutineScope {
                     val deferred = async(Dispatchers.Default) {
-                        finalMatch.source?.getLyrics(finalMatch.result)?.let { result ->
-                            val sourceId = finalMatch.source.id
-
+                        lyricsMatch.source.getLyrics(lyricsMatch.result)?.let { result ->
+                            val sourceId = lyricsMatch.source.id
                             val processed = fieldProcessor.processLyrics(
                                 lyrics = result,
                                 config = defaultPluginFieldProcessConfig(sourceId)
                             )
-
                             LyricEncoder.encode(
                                 result = processed,
                                 config = lyricConfig.copy(
@@ -307,28 +317,31 @@ class MatchMetadataProcessor(
                 logPluginBatchException(
                     message = "Batch metadata match lyrics fetch failed\n" +
                             "task=${task.taskId}\nitem=${item.itemId}\n" +
-                            "songUri=${song.uri}\nsource=${finalMatch.source?.id}\n" +
-                            "result=${finalMatch.result.id}:${finalMatch.result.title}",
+                            "songUri=${song.uri}\nsource=${lyricsMatch.source.id}\n" +
+                            "result=${lyricsMatch.result.id}:${lyricsMatch.result.title}",
                     throwable = throwable,
-                    relatedId = finalMatch.source?.id
+                    relatedId = lyricsMatch.source.id
                 )
                 null
             }
-        } else {
-            null
-        }
+        } else null
 
         onProgress(0.75f)
 
+        val candidateFields = selectedByTarget.mapNotNull { (target, candidate) ->
+            val field = com.lonx.lyrico.data.model.metadata.StandardPluginField.entries
+                .firstOrNull { it.target == target } ?: return@mapNotNull null
+            val sourceId = candidate.source?.id ?: return@mapNotNull null
+            val value = candidate.result.normalizedFields()[field.key] ?: return@mapNotNull null
+            fieldProcessor.processFields(
+                pluginId = sourceId,
+                fields = mapOf(field.key to value),
+                config = defaultPluginFieldProcessConfig(sourceId),
+                fieldDefinitions = emptyList(),
+                writeRules = emptyList()
+            ).entries.firstOrNull()
+        }.toMap() + newLyrics?.takeIf { it.isNotBlank() }?.let { mapOf("lyrics" to it) }.orEmpty()
         val sourceId = finalMatch.source?.id.orEmpty()
-        val candidateFields = fieldProcessor.processFields(
-            pluginId = sourceId,
-            fields = finalMatch.result.normalizedFields() +
-                    newLyrics?.takeIf { it.isNotBlank() }?.let { mapOf("lyrics" to it) }.orEmpty(),
-            config = defaultPluginFieldProcessConfig(sourceId),
-            fieldDefinitions = emptyList(),
-            writeRules = emptyList()
-        )
 
         val tagDataToWrite = SearchResultApplier.buildPatch(
             current = currentTag,
@@ -450,6 +463,7 @@ data class MatchMetadataTaskConfig(
     val matchConfig: BatchMatchConfig,
     val separator: String,
     val enabledSourceOrderIds: List<String>,
+    val fieldPriorityTemplate: FieldPriorityTemplate? = null,
     val sourceSettings: Map<String, Map<String, String>> = emptyMap(),
     val lyricRenderConfig: LyricRenderConfig? = null,
     val concurrency: Int = 3

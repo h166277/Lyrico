@@ -15,6 +15,7 @@ import com.lonx.lyrico.data.model.BatchMatchConfigDefaults
 import com.lonx.lyrico.data.model.CharacterMappingConfig
 import com.lonx.lyrico.data.model.CharacterMappingDefaults
 import com.lonx.lyrico.data.model.ConversionMode
+import com.lonx.lyrico.data.model.FieldPriorityTemplate
 import com.lonx.lyrico.data.model.lyrics.DefaultLyricLineOrder
 import com.lonx.lyrico.data.model.lyrics.LyricFormat
 import com.lonx.lyrico.data.model.lyrics.LyricLineTrack
@@ -128,6 +129,7 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
         val ONLY_TRANSLATION_IF_AVAILABLE = booleanPreferencesKey("only_translation_if_available")
         val CHARACTER_MAPPING_CONFIG = stringPreferencesKey("character_mapping_config")
         val BATCH_MATCH_CONFIG = stringPreferencesKey("batch_match_config")
+        val FIELD_PRIORITY_TEMPLATES = stringPreferencesKey("field_priority_templates")
         val METADATA_FIELD_WRITE_RULES = stringPreferencesKey("metadata_field_write_rules")
         val SOURCE_SETTINGS = stringPreferencesKey("source_settings")
         val CONVERSION_MODE = stringPreferencesKey("conversion_mode")
@@ -615,6 +617,7 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
         val prefs = context.settingsDataStore.data.first()
         val charMapping = getCharacterMappingConfig()
         val batchMatchConfig = getBatchMatchConfig()
+        val fieldPriorityTemplates = fieldPriorityTemplates.first()
         val artistSplitConfig = getArtistSplitConfig()
         val backup = SettingsBackup(
             removeEmptyLines = prefs[PreferencesKeys.REMOVE_EMPTY_LINES]
@@ -693,6 +696,7 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
             renameFormat = prefs[PreferencesKeys.RENAME_FORMAT]
                 ?: SettingsDefaults.RENAME_FORMAT,
             batchMatchConfig = batchMatchConfig,
+            fieldPriorityTemplates = fieldPriorityTemplates,
             conversionMode = prefs[PreferencesKeys.CONVERSION_MODE]
                 ?: SettingsDefaults.CONVERSION_MODE.name,
             logRetentionOption = prefs[PreferencesKeys.LOG_RETENTION_OPTION]
@@ -784,6 +788,9 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
                 backup.batchMatchConfig?.let { config ->
                     prefs[PreferencesKeys.BATCH_MATCH_CONFIG] = jsonFormatter.encodeToString(config)
                 }
+                backup.fieldPriorityTemplates?.let { templates ->
+                    prefs[PreferencesKeys.FIELD_PRIORITY_TEMPLATES] = jsonFormatter.encodeToString(templates)
+                }
                 backup.conversionMode?.let { prefs[PreferencesKeys.CONVERSION_MODE] = it }
                 backup.logRetentionOption?.let { optionName ->
                     runCatching { LogRetentionOption.valueOf(optionName) }
@@ -848,6 +855,17 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
             }
         }
 
+    override val fieldPriorityTemplates: Flow<List<FieldPriorityTemplate>>
+        get() = context.settingsDataStore.data.map { preferences ->
+            preferences[PreferencesKeys.FIELD_PRIORITY_TEMPLATES]
+                ?.let { json ->
+                    runCatching {
+                        jsonFormatter.decodeFromString<List<FieldPriorityTemplate>>(json)
+                    }.getOrDefault(emptyList())
+                }
+                .orEmpty()
+        }
+
     override val metadataFieldWriteRules: Flow<List<PluginMetadataFieldWriteRule>>
         get() = context.settingsDataStore.data.map { preferences ->
             val rulesJson = preferences[PreferencesKeys.METADATA_FIELD_WRITE_RULES]
@@ -874,6 +892,36 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
         context.settingsDataStore.edit { preferences ->
             val configJson = jsonFormatter.encodeToString(config)
             preferences[PreferencesKeys.BATCH_MATCH_CONFIG] = configJson
+        }
+    }
+
+    override suspend fun saveFieldPriorityTemplates(templates: List<FieldPriorityTemplate>) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[PreferencesKeys.FIELD_PRIORITY_TEMPLATES] = jsonFormatter.encodeToString(templates)
+        }
+    }
+
+    override suspend fun deleteFieldPriorityTemplate(templateId: String) {
+        context.settingsDataStore.edit { preferences ->
+            val templates = preferences[PreferencesKeys.FIELD_PRIORITY_TEMPLATES]
+                ?.let { json ->
+                    runCatching {
+                        jsonFormatter.decodeFromString<List<FieldPriorityTemplate>>(json)
+                    }.getOrDefault(emptyList())
+                }
+                .orEmpty()
+            preferences[PreferencesKeys.FIELD_PRIORITY_TEMPLATES] = jsonFormatter.encodeToString(
+                templates.filterNot { it.id == templateId }
+            )
+
+            val config = preferences[PreferencesKeys.BATCH_MATCH_CONFIG]
+                ?.let(::decodeBatchMatchConfig)
+                ?: BatchMatchConfigDefaults.DEFAULT_CONFIG
+            if (config.fieldPriorityTemplateId == templateId) {
+                preferences[PreferencesKeys.BATCH_MATCH_CONFIG] = jsonFormatter.encodeToString(
+                    config.copy(fieldPriorityTemplateId = null)
+                )
+            }
         }
     }
 
@@ -1009,7 +1057,11 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
                     ?.jsonPrimitive
                     ?.contentOrNull
                     ?.toBooleanStrictOrNull()
-                    ?: defaultConfig.preferFileName
+                    ?: defaultConfig.preferFileName,
+                fieldPriorityTemplateId = root["fieldPriorityTemplateId"]
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+                    ?.takeIf { it.isNotBlank() }
             )
         } catch (_: Exception) {
             BatchMatchConfigDefaults.DEFAULT_CONFIG
