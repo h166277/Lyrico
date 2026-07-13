@@ -328,19 +328,24 @@ class MatchMetadataProcessor(
 
         onProgress(0.75f)
 
-        val candidateFields = selectedByTarget.mapNotNull { (target, candidate) ->
-            val field = com.lonx.lyrico.data.model.metadata.StandardPluginField.entries
-                .firstOrNull { it.target == target } ?: return@mapNotNull null
-            val sourceId = candidate.source?.id ?: return@mapNotNull null
-            val value = candidate.result.normalizedFields()[field.key] ?: return@mapNotNull null
-            fieldProcessor.processFields(
-                pluginId = sourceId,
-                fields = mapOf(field.key to value),
-                config = defaultPluginFieldProcessConfig(sourceId),
-                fieldDefinitions = emptyList(),
-                writeRules = emptyList()
-            ).entries.firstOrNull()
-        }.toMap() + newLyrics?.takeIf { it.isNotBlank() }?.let { mapOf("lyrics" to it) }.orEmpty()
+        val candidateFields = buildMap {
+            selectedByTarget.forEach { (target, candidate) ->
+                val field = com.lonx.lyrico.data.model.metadata.StandardPluginField.entries
+                    .firstOrNull { it.target == target } ?: return@forEach
+                val sourceId = candidate.source?.id ?: return@forEach
+                val value = candidate.result.normalizedFields()[field.key] ?: return@forEach
+                putAll(
+                    fieldProcessor.processFields(
+                        pluginId = sourceId,
+                        fields = mapOf(field.key to value),
+                        config = defaultPluginFieldProcessConfig(sourceId),
+                        fieldDefinitions = emptyList(),
+                        writeRules = emptyList()
+                    )
+                )
+            }
+            newLyrics?.takeIf { it.isNotBlank() }?.let { put("lyrics", it) }
+        }
         val sourceId = finalMatch.source?.id.orEmpty()
 
         val tagDataToWrite = SearchResultApplier.buildPatch(

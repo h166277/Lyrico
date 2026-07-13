@@ -69,8 +69,8 @@ fun FieldPriorityTemplateEditorScreen(
     ) { padding ->
         if (template == null) return@Scaffold
         LazyColumn(
-            modifier = Modifier.fillMaxSize().scaffoldContentPadding(padding),
-            contentPadding = PaddingValues(12.dp)
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = scaffoldContentPadding(padding, horizontalExtra = 12.dp)
         ) {
             item {
                 Text(

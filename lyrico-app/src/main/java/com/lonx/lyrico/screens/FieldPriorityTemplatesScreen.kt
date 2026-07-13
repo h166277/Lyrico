@@ -68,8 +68,8 @@ fun FieldPriorityTemplatesScreen(navigator: DestinationsNavigator) {
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().scaffoldContentPadding(padding),
-            contentPadding = PaddingValues(12.dp)
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = scaffoldContentPadding(padding, horizontalExtra = 12.dp)
         ) {
             item {
                 Text(
