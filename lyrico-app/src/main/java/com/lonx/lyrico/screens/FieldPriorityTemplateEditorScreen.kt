@@ -151,7 +151,23 @@ private fun FieldPrioritySourceOrderDialog(
     }
     WindowDialog(show = true, title = title, onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.field_priority_template_order_summary))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "调整插件优先级",
+                    modifier = Modifier.weight(1f)
+                )
+                androidx.compose.material3.TextButton(
+                    onClick = { onSave(order, excludedSourceIds) },
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary
+                    )
+                ) {
+                    androidx.compose.material3.Text(stringResource(R.string.confirm))
+                }
+            }
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
@@ -196,14 +212,6 @@ private fun FieldPrioritySourceOrderDialog(
                 }
             }
             Spacer(Modifier.padding(top = 8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                androidx.compose.material3.TextButton(onClick = { onSave(order, excludedSourceIds) }) {
-                    androidx.compose.material3.Text(stringResource(R.string.confirm))
-                }
-            }
             excludedSourceIds
                 .mapNotNull { sourceId -> sources.firstOrNull { it.id == sourceId } }
                 .forEach { source ->
