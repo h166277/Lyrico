@@ -1,7 +1,11 @@
 package com.lonx.lyrico.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,15 +22,22 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.consume
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lonx.lyrico.R
 import com.lonx.lyrico.data.model.BatchMatchConfigDefaults
@@ -165,7 +177,10 @@ private fun FieldPrioritySourceOrderDialog(
                         contentColor = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary
                     )
                 ) {
-                    androidx.compose.material3.Text(stringResource(R.string.confirm))
+                    androidx.compose.material3.Text(
+                        text = stringResource(R.string.confirm),
+                        fontSize = 16.sp
+                    )
                 }
             }
             LazyColumn(
@@ -179,39 +194,76 @@ private fun FieldPrioritySourceOrderDialog(
                     val source = sources.firstOrNull { it.id == sourceId } ?: return@itemsIndexed
                     ReorderableItem(state = reorderableState, key = sourceId) {
                         val interactionSource = remember { MutableInteractionSource() }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(source.name, modifier = Modifier.weight(1f))
-                            androidx.compose.material3.TextButton(
-                                onClick = {
-                                    order = order.filterNot { it == sourceId }
-                                    excludedSourceIds = excludedSourceIds + sourceId
+                        var horizontalOffset by remember(sourceId) { mutableFloatStateOf(0f) }
+                        var removeRevealed by remember(sourceId) { mutableStateOf(false) }
+                        val revealThreshold = with(LocalDensity.current) { 72.dp.toPx() }
+                        val animatedOffset by animateFloatAsState(
+                            targetValue = if (removeRevealed) -revealThreshold else horizontalOffset,
+                            animationSpec = tween(160),
+                            label = "fieldSourceSwipeOffset"
+                        )
+                        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                            if (removeRevealed) {
+                                androidx.compose.material3.TextButton(
+                                    modifier = Modifier.align(Alignment.CenterEnd),
+                                    onClick = {
+                                        order = order.filterNot { it == sourceId }
+                                        excludedSourceIds = excludedSourceIds + sourceId
+                                    },
+                                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                                        contentColor = androidx.compose.ui.graphics.Color(0xFFE5484D)
+                                    )
+                                ) {
+                                    androidx.compose.material3.Text("−", fontSize = 22.sp)
                                 }
-                            ) {
-                                androidx.compose.material3.Text("−")
                             }
-                            Text(
-                                text = "☰",
+                            Row(
                                 modifier = Modifier
-                                    .size(48.dp)
-                                    .padding(12.dp)
-                                    .longPressDraggableHandle(
-                                        onDragStarted = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        },
-                                        interactionSource = interactionSource
-                                    ),
-                                color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantActions
-                            )
+                                    .fillMaxWidth()
+                                    .offset { IntOffset(animatedOffset.roundToInt(), 0) },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(source.name, modifier = Modifier.weight(1f))
+                                Text(
+                                    text = "＝",
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .padding(12.dp)
+                                        .pointerInput(sourceId, removeRevealed) {
+                                            detectHorizontalDragGestures(
+                                                onHorizontalDrag = { change, dragAmount ->
+                                                    change.consume()
+                                                    horizontalOffset = (horizontalOffset + dragAmount)
+                                                        .coerceIn(-revealThreshold, 0f)
+                                                },
+                                                onDragEnd = {
+                                                    removeRevealed = horizontalOffset <= -revealThreshold * 0.7f
+                                                    horizontalOffset = 0f
+                                                },
+                                                onDragCancel = { horizontalOffset = 0f }
+                                            )
+                                        }
+                                        .longPressDraggableHandle(
+                                            onDragStarted = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            },
+                                            interactionSource = interactionSource
+                                        ),
+                                    color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     }
                 }
             }
             Spacer(Modifier.padding(top = 8.dp))
+            if (excludedSourceIds.isNotEmpty()) {
+                Text(
+                    text = "恢复区",
+                    modifier = Modifier.padding(vertical = 6.dp),
+                    color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantActions
+                )
+            }
             excludedSourceIds
                 .mapNotNull { sourceId -> sources.firstOrNull { it.id == sourceId } }
                 .forEach { source ->
@@ -226,9 +278,12 @@ private fun FieldPrioritySourceOrderDialog(
                             onClick = {
                                 excludedSourceIds = excludedSourceIds - source.id
                                 order = order + source.id
-                            }
+                            },
+                            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                                contentColor = androidx.compose.ui.graphics.Color(0xFF43A047)
+                            )
                         ) {
-                            androidx.compose.material3.Text("+")
+                            androidx.compose.material3.Text("+", fontSize = 22.sp)
                         }
                     }
                 }

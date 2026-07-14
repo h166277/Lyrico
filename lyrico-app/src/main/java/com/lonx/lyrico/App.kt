@@ -94,7 +94,8 @@ class App : Application(), SingletonImageLoader.Factory {
                     .directory(context.cacheDir.resolve("image_cache"))
                     .build()
             }
-            .crossfade(true)
+            // Album art enters the list during flings; avoid animating each decode.
+            .crossfade(false)
             .build()
     }
 

@@ -372,7 +372,6 @@ fun SongsPage(
                             ) { song ->
                                 SongListItem(
                                     song = song,
-                                    modifier = Modifier.animateItem(),
                                     isSelectionMode = isSelectionMode,
                                     isSelected = selectedSongUris.contains(song.uri),
                                     swipeSelectionLabel = swipeSelectionLabel,
