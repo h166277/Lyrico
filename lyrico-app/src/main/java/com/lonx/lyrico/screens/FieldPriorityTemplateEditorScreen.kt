@@ -1,6 +1,6 @@
 package com.lonx.lyrico.screens
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,16 +12,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -36,6 +36,8 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import org.koin.androidx.compose.koinViewModel
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -139,56 +141,48 @@ private fun FieldPrioritySourceOrderDialog(
         )
     }
     val haptic = LocalHapticFeedback.current
+    val lazyListState = rememberLazyListState()
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        order = order.toMutableList().apply {
+            add(to.index, removeAt(from.index))
+        }
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+    }
     WindowDialog(show = true, title = title, onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.field_priority_template_order_summary))
-            Column(modifier = Modifier.heightIn(max = 360.dp)) {
-                order.forEachIndexed { index, sourceId ->
-                    val source = sources.firstOrNull { it.id == sourceId } ?: return@forEachIndexed
-                    var dragX by remember(sourceId) { mutableFloatStateOf(0f) }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(source.name, modifier = Modifier.weight(1f))
-                        Text(
-                            text = "☰",
+            LazyColumn(
+                state = lazyListState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp),
+                overscrollEffect = null
+            ) {
+                itemsIndexed(order, key = { _, sourceId -> sourceId }) { _, sourceId ->
+                    val source = sources.firstOrNull { it.id == sourceId } ?: return@itemsIndexed
+                    ReorderableItem(state = reorderableState, key = sourceId) {
+                        val interactionSource = remember { MutableInteractionSource() }
+                        Row(
                             modifier = Modifier
-                                .size(48.dp)
-                                .padding(12.dp)
-                                .pointerInput(sourceId, order) {
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = {
-                                            dragX = 0f
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(source.name, modifier = Modifier.weight(1f))
+                            Text(
+                                text = "☰",
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .padding(12.dp)
+                                    .longPressDraggableHandle(
+                                        onDragStarted = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         },
-                                        onDrag = { change, dragAmount ->
-                                            dragX += dragAmount.x
-                                            when {
-                                                dragX <= -96f -> {
-                                                    order = order.filterNot { it == sourceId }
-                                                    excludedSourceIds = excludedSourceIds + sourceId
-                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                }
-                                                kotlin.math.abs(dragAmount.y) > kotlin.math.abs(dragAmount.x) && dragAmount.y != 0f -> {
-                                                    val currentIndex = order.indexOf(sourceId)
-                                                    val targetIndex = if (dragAmount.y < 0f) currentIndex - 1 else currentIndex + 1
-                                                    if (targetIndex in order.indices) {
-                                                        order = order.toMutableList().apply {
-                                                            add(targetIndex, removeAt(currentIndex))
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        onDragEnd = { dragX = 0f },
-                                        onDragCancel = { dragX = 0f }
-                                    )
-                                },
-                            color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantActions
-                        )
+                                        interactionSource = interactionSource
+                                    ),
+                                color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantActions
+                            )
+                        }
                     }
                 }
             }
