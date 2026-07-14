@@ -1,6 +1,7 @@
 package com.lonx.lyrico.screens
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -169,6 +170,14 @@ private fun FieldPrioritySourceOrderDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(source.name, modifier = Modifier.weight(1f))
+                            androidx.compose.material3.TextButton(
+                                onClick = {
+                                    order = order.filterNot { it == sourceId }
+                                    excludedSourceIds = excludedSourceIds + sourceId
+                                }
+                            ) {
+                                androidx.compose.material3.Text("−")
+                            }
                             Text(
                                 text = "☰",
                                 modifier = Modifier
@@ -187,9 +196,34 @@ private fun FieldPrioritySourceOrderDialog(
                 }
             }
             Spacer(Modifier.padding(top = 8.dp))
-            androidx.compose.material3.TextButton(onClick = { onSave(order, excludedSourceIds) }) {
-                androidx.compose.material3.Text(stringResource(R.string.confirm))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                androidx.compose.material3.TextButton(onClick = { onSave(order, excludedSourceIds) }) {
+                    androidx.compose.material3.Text(stringResource(R.string.confirm))
+                }
             }
+            excludedSourceIds
+                .mapNotNull { sourceId -> sources.firstOrNull { it.id == sourceId } }
+                .forEach { source ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(source.name, modifier = Modifier.weight(1f))
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                excludedSourceIds = excludedSourceIds - source.id
+                                order = order + source.id
+                            }
+                        ) {
+                            androidx.compose.material3.Text("+")
+                        }
+                    }
+                }
         }
     }
 }
