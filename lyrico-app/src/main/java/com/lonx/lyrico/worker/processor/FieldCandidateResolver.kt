@@ -11,7 +11,19 @@ object FieldCandidateResolver {
         targetModes: Map<MetadataFieldTarget, *>,
         template: FieldPriorityTemplate?,
         globalOrder: List<String>
-    ): Map<MetadataFieldTarget, ScoredSearchResult> {
+    ): Map<MetadataFieldTarget, ScoredSearchResult> = resolveCandidates(
+        candidates = candidates,
+        targetModes = targetModes,
+        template = template,
+        globalOrder = globalOrder
+    ).mapValues { (_, candidatesForTarget) -> candidatesForTarget.first() }
+
+    fun resolveCandidates(
+        candidates: Collection<ScoredSearchResult>,
+        targetModes: Map<MetadataFieldTarget, *>,
+        template: FieldPriorityTemplate?,
+        globalOrder: List<String>
+    ): Map<MetadataFieldTarget, List<ScoredSearchResult>> {
         val bestBySource = candidates
             .filter { it.source != null }
             .groupBy { it.source!!.id }
@@ -20,16 +32,17 @@ object FieldCandidateResolver {
 
         return targetModes.keys.mapNotNull { target ->
             val field = StandardPluginField.entries.firstOrNull { it.target == target } ?: return@mapNotNull null
-            val selected = FieldPriorityResolver.orderedSourceIds(
+            val orderedCandidates = FieldPriorityResolver.orderedSourceIds(
                 target = target,
                 template = template,
                 globalOrder = globalOrder,
                 availableSourceIds = availableSourceIds
-            ).asSequence()
-                .mapNotNull { sourceId -> bestBySource[sourceId] }
-                .firstOrNull { result -> !result.result.normalizedFields()[field.key].isNullOrBlank() }
-                ?: return@mapNotNull null
-            target to selected
+            ).mapNotNull { sourceId -> bestBySource[sourceId] }
+                .filter { candidate ->
+                    target == MetadataFieldTarget.LYRICS ||
+                        !candidate.result.normalizedFields()[field.key].isNullOrBlank()
+                }
+            if (orderedCandidates.isEmpty()) null else target to orderedCandidates
         }.toMap()
     }
 }

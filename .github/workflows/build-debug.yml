@@ -49,6 +49,9 @@ jobs:
       - name: 🐘 配置 Gradle
         uses: gradle/actions/setup-gradle@v5
 
+      - name: 🧪 测试字段候选回退
+        run: ./gradlew :lyrico-app:testDebugUnitTest --tests com.lonx.lyrico.worker.processor.FieldCandidateResolverTest --stacktrace
+
       - name: 🛠️ 构建 Debug APK
         run: ./gradlew assembleDebug --stacktrace
 

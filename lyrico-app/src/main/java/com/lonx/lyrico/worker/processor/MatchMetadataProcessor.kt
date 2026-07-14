@@ -30,9 +30,6 @@ import com.lonx.lyrico.utils.LyricEncoder
 import com.lonx.lyrico.utils.MatchScoreDetail
 import com.lonx.lyrico.utils.MusicMatchUtils
 import com.lonx.lyrico.utils.PluginFieldPostProcessor
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -282,69 +279,69 @@ class MatchMetadataProcessor(
         val qualityApprovedCandidates = sourceBestCandidates
             .filter { (_, detail) -> detail.finalScore >= 0.76 && detail.textScore >= 0.72 }
             .map { (candidate, _) -> candidate }
-        val selectedByTarget = config.fieldPriorityTemplate?.let { template ->
-            FieldCandidateResolver.resolve(
+        val candidatesByTarget = config.fieldPriorityTemplate?.let { template ->
+            FieldCandidateResolver.resolveCandidates(
                 candidates = qualityApprovedCandidates,
                 targetModes = plan.targetModes,
                 template = template,
                 globalOrder = enabledSourceOrder
             )
-        } ?: plan.targetModes.keys.associateWith { finalMatch }
-        val lyricsMatch = selectedByTarget[MetadataFieldTarget.LYRICS]
+        } ?: plan.targetModes.keys.associateWith { listOf(finalMatch) }
 
-        val newLyrics = if (shouldWriteLyrics && lyricConfig != null && lyricsMatch?.source != null) {
-            try {
-                coroutineScope {
-                    val deferred = async(Dispatchers.Default) {
-                        lyricsMatch.source.getLyrics(lyricsMatch.result)?.let { result ->
-                            val sourceId = lyricsMatch.source.id
+        val newLyrics = if (shouldWriteLyrics && lyricConfig != null) {
+            candidatesByTarget[MetadataFieldTarget.LYRICS]
+                .orEmpty()
+                .firstNotNullOfOrNull { candidate ->
+                    val source = candidate.source ?: return@firstNotNullOfOrNull null
+                    try {
+                        source.getLyrics(candidate.result)?.let { result ->
                             val processed = fieldProcessor.processLyrics(
                                 lyrics = result,
-                                config = defaultPluginFieldProcessConfig(sourceId)
+                                config = defaultPluginFieldProcessConfig(source.id)
                             )
                             LyricEncoder.encode(
                                 result = processed,
                                 config = lyricConfig.copy(
                                     conversionMode = com.lonx.lyrico.data.model.ConversionMode.NONE
                                 )
-                            )
+                            ).takeIf { it.isNotBlank() }
                         }
+                    } catch (throwable: Exception) {
+                        if (throwable is CancellationException) throw throwable
+                        logPluginBatchException(
+                            message = "Batch metadata match lyrics fetch failed\n" +
+                                    "task=${task.taskId}\nitem=${item.itemId}\n" +
+                                    "songUri=${song.uri}\nsource=${source.id}\n" +
+                                    "result=${candidate.result.id}:${candidate.result.title}",
+                            throwable = throwable,
+                            relatedId = source.id
+                        )
+                        null
                     }
-                    deferred.await()
                 }
-            } catch (throwable: Exception) {
-                if (throwable is CancellationException) throw throwable
-                logPluginBatchException(
-                    message = "Batch metadata match lyrics fetch failed\n" +
-                            "task=${task.taskId}\nitem=${item.itemId}\n" +
-                            "songUri=${song.uri}\nsource=${lyricsMatch.source.id}\n" +
-                            "result=${lyricsMatch.result.id}:${lyricsMatch.result.title}",
-                    throwable = throwable,
-                    relatedId = lyricsMatch.source.id
-                )
-                null
-            }
         } else null
 
         onProgress(0.75f)
 
         val candidateFields = buildMap {
-            selectedByTarget.forEach { (target, candidate) ->
+            candidatesByTarget.forEach { (target, candidatesForTarget) ->
+                if (target == MetadataFieldTarget.LYRICS) return@forEach
                 val field = com.lonx.lyrico.data.model.metadata.StandardPluginField.entries
                     .firstOrNull { it.target == target } ?: return@forEach
-                val sourceId = candidate.source?.id ?: return@forEach
-                val value = candidate.result.normalizedFields()[field.key] ?: return@forEach
-                putAll(
+                candidatesForTarget.firstNotNullOfOrNull { candidate ->
+                    val sourceId = candidate.source?.id ?: return@firstNotNullOfOrNull null
+                    val value = candidate.result.normalizedFields()[field.key]
+                        ?: return@firstNotNullOfOrNull null
                     fieldProcessor.processFields(
                         pluginId = sourceId,
                         fields = mapOf(field.key to value),
                         config = defaultPluginFieldProcessConfig(sourceId),
                         fieldDefinitions = emptyList(),
                         writeRules = emptyList()
-                    )
-                )
+                    )[field.key]?.takeIf { it.isNotBlank() }
+                }?.let { put(field.key, it) }
             }
-            newLyrics?.takeIf { it.isNotBlank() }?.let { put("lyrics", it) }
+            newLyrics?.let { put("lyrics", it) }
         }
         val sourceId = finalMatch.source?.id.orEmpty()
 

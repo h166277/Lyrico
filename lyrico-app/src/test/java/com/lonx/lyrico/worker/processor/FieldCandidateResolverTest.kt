@@ -45,6 +45,33 @@ class FieldCandidateResolverTest {
         assertEquals("qq", resolved[MetadataFieldTarget.TITLE]?.source?.id)
     }
 
+    @Test
+    fun candidatesFollowEachFieldTemplateOrderAndRetainFallbacks() {
+        val kugou = source("kugou")
+        val qq = source("qq")
+        val netease = source("netease")
+        val resolved = FieldCandidateResolver.resolveCandidates(
+            candidates = listOf(
+                candidate(kugou, emptyMap()),
+                candidate(qq, mapOf("title" to "QQ title")),
+                candidate(netease, mapOf("title" to "Netease title"))
+            ),
+            targetModes = mapOf(MetadataFieldTarget.TITLE to Unit, MetadataFieldTarget.LYRICS to Unit),
+            template = FieldPriorityTemplate(
+                "default",
+                "Default",
+                mapOf(
+                    MetadataFieldTarget.TITLE to listOf("kugou", "netease", "qq"),
+                    MetadataFieldTarget.LYRICS to listOf("kugou", "qq", "netease")
+                )
+            ),
+            globalOrder = listOf("netease", "qq", "kugou")
+        )
+
+        assertEquals(listOf("netease", "qq"), resolved[MetadataFieldTarget.TITLE]?.map { it.source?.id })
+        assertEquals(listOf("kugou", "qq", "netease"), resolved[MetadataFieldTarget.LYRICS]?.map { it.source?.id })
+    }
+
     private fun source(id: String) = object : SearchSource {
         override val id = id
         override val name = id
