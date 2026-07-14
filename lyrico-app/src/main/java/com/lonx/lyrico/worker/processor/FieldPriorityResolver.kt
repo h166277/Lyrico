@@ -10,8 +10,9 @@ object FieldPriorityResolver {
         globalOrder: List<String>,
         availableSourceIds: Set<String>
     ): List<String> {
+        val excludedSourceIds = template?.excludedSourceIdsByTarget?.get(target).orEmpty()
         return (template?.sourceOrderByTarget?.get(target).orEmpty() + globalOrder)
             .distinct()
-            .filter { it in availableSourceIds }
+            .filter { it in availableSourceIds && it !in excludedSourceIds }
     }
 }

@@ -58,6 +58,23 @@ class FieldPriorityTemplatesViewModel(
         })
     }
 
+    fun updateFieldSources(
+        templateId: String,
+        target: MetadataFieldTarget,
+        sourceIds: List<String>,
+        excludedSourceIds: Set<String>
+    ) {
+        save(templates.value.map { template ->
+            if (template.id == templateId) {
+                template.copy(
+                    sourceOrderByTarget = template.sourceOrderByTarget + (target to sourceIds.distinct()),
+                    excludedSourceIdsByTarget = template.excludedSourceIdsByTarget +
+                        (target to excludedSourceIds)
+                )
+            } else template
+        })
+    }
+
     private fun save(updated: List<FieldPriorityTemplate>) {
         viewModelScope.launch { settingsRepository.saveFieldPriorityTemplates(updated) }
     }

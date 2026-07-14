@@ -70,6 +70,26 @@ class FieldPriorityResolverTest {
     }
 
     @Test
+    fun excludedSourceDoesNotReturnThroughGlobalOrder() {
+        val template = FieldPriorityTemplate(
+            id = "japanese",
+            name = "Japanese",
+            sourceOrderByTarget = mapOf(MetadataFieldTarget.LYRICS to listOf("qq", "netease")),
+            excludedSourceIdsByTarget = mapOf(MetadataFieldTarget.LYRICS to setOf("kugou"))
+        )
+
+        assertEquals(
+            listOf("qq", "netease"),
+            FieldPriorityResolver.orderedSourceIds(
+                target = MetadataFieldTarget.LYRICS,
+                template = template,
+                globalOrder = listOf("kugou", "qq", "netease"),
+                availableSourceIds = setOf("kugou", "qq", "netease")
+            )
+        )
+    }
+
+    @Test
     fun nullTemplateUsesGlobalOrder() {
         assertEquals(
             listOf("qq", "apple"),
