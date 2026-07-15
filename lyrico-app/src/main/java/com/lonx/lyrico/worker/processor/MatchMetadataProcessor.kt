@@ -118,7 +118,57 @@ class MatchMetadataProcessor(
         var bestMatchDetail: MatchScoreDetail? = null
         val sourceBestCandidates = mutableListOf<Pair<ScoredSearchResult, MatchScoreDetail>>()
 
-        searchLoop@ for ((queryIndex, query) in queries.withIndex()) {
+        if (config.fieldPriorityTemplate != null) {
+            val sourcesById = orderedSources.associateBy { it.id }
+            val templateCandidates = TemplateFieldSearchCoordinator.collectCandidates(
+                targetModes = plan.targetModes.keys,
+                template = config.fieldPriorityTemplate,
+                globalOrder = orderedSources.map { it.id },
+                availableSourceIds = sourcesById.keys
+            ) { sourceId ->
+                val source = sourcesById.getValue(sourceId)
+                var sourceBest: Pair<ScoredSearchResult, MatchScoreDetail>? = null
+                for (query in queries) {
+                    val results = try {
+                        source.searchSongs(query, separator = separator, pageSize = 2)
+                    } catch (throwable: Exception) {
+                        if (throwable is CancellationException) throw throwable
+                        logPluginBatchException(
+                            message = "Batch metadata match source failed\n" +
+                                "task=${task.taskId}\nitem=${item.itemId}\n" +
+                                "songUri=${song.uri}\nsource=${source.id}\nquery=$query",
+                            throwable = throwable,
+                            relatedId = source.id
+                        )
+                        emptyList()
+                    }
+                    val candidate = results.mapIndexed { index, result ->
+                        val detail = MusicMatchUtils.calculateMatchScoreDetail(
+                            result = result,
+                            song = song,
+                            preferFileName = matchConfig.preferFileName,
+                            rankIndex = index
+                        )
+                        ScoredSearchResult(result, detail.finalScore, source) to detail
+                    }.maxByOrNull { it.second.finalScore }
+                    if (candidate != null &&
+                        (sourceBest == null || candidate.second.finalScore > sourceBest!!.second.finalScore)
+                    ) {
+                        sourceBest = candidate
+                    }
+                }
+                sourceBest?.takeIf { (_, detail) ->
+                    detail.finalScore >= 0.76 && detail.textScore >= 0.72
+                }
+            }
+            sourceBestCandidates += templateCandidates
+            templateCandidates.forEach { (candidate, detail) ->
+                if (bestMatch == null || detail.finalScore > (bestMatchDetail?.finalScore ?: 0.0)) {
+                    bestMatch = candidate
+                    bestMatchDetail = detail
+                }
+            }
+        } else searchLoop@ for ((queryIndex, query) in queries.withIndex()) {
             var queryBest: ScoredSearchResult? = null
             var queryBestDetail: MatchScoreDetail? = null
 
