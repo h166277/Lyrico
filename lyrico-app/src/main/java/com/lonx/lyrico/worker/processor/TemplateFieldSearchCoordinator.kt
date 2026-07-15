@@ -29,13 +29,14 @@ internal object TemplateFieldSearchCoordinator {
                 requestedSourceIds = requestedSourceIds,
                 sourcesWithFieldData = sourcesWithFieldData
             )
-            if (nextSourceIds.isEmpty()) return@coroutineScope candidates
+            if (nextSourceIds.isEmpty()) break
 
             requestedSourceIds += nextSourceIds
             candidates += nextSourceIds.map { sourceId ->
                 async { fetchBestCandidate(sourceId) }
             }.awaitAll().filterNotNull()
         }
+        candidates
     }
 
     private fun sourcesWithFieldData(
