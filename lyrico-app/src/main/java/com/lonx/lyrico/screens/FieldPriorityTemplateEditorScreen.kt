@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -280,17 +281,24 @@ private fun FieldPrioritySourceOrderDialog(
                             modifier = Modifier.weight(1f),
                             color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantActions
                         )
-                        IconButton(
-                            onClick = {
-                                excludedSourceIds = excludedSourceIds - source.id
-                                order = order + source.id
-                            }
+                        Box(
+                            modifier = Modifier.size(48.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            top.yukonga.miuix.kmp.basic.Icon(
-                                imageVector = MiuixIcons.Add,
-                                contentDescription = stringResource(R.string.field_priority_template_restore_source),
-                                tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary
-                            )
+                            IconButton(
+                                modifier = Modifier.size(30.dp),
+                                onClick = {
+                                    excludedSourceIds = excludedSourceIds - source.id
+                                    order = order + source.id
+                                }
+                            ) {
+                                top.yukonga.miuix.kmp.basic.Icon(
+                                    imageVector = MiuixIcons.Add,
+                                    contentDescription = stringResource(R.string.field_priority_template_restore_source),
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color(0xFF34C759)
+                                )
+                            }
                         }
                     }
                 }
