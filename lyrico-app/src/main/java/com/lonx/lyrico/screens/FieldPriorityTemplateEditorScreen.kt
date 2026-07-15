@@ -57,7 +57,9 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.window.WindowDialog
 
@@ -203,17 +205,18 @@ private fun FieldPrioritySourceOrderDialog(
                         )
                         Box(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                             if (removeRevealed) {
-                                androidx.compose.material3.TextButton(
+                                IconButton(
                                     modifier = Modifier.align(Alignment.CenterEnd),
                                     onClick = {
                                         order = order.filterNot { it == sourceId }
                                         excludedSourceIds = excludedSourceIds + sourceId
-                                    },
-                                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                                        contentColor = androidx.compose.ui.graphics.Color(0xFFE5484D)
-                                    )
+                                    }
                                 ) {
-                                    androidx.compose.material3.Text("−", fontSize = 22.sp)
+                                    top.yukonga.miuix.kmp.basic.Icon(
+                                        imageVector = MiuixIcons.Delete,
+                                        contentDescription = stringResource(R.string.action_delete),
+                                        tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.error
+                                    )
                                 }
                             }
                             Row(
@@ -260,7 +263,7 @@ private fun FieldPrioritySourceOrderDialog(
                 Text(
                     text = "恢复区",
                     modifier = Modifier.padding(vertical = 6.dp),
-                    color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantActions
+                    color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurface
                 )
             }
             excludedSourceIds
@@ -272,17 +275,22 @@ private fun FieldPrioritySourceOrderDialog(
                             .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(source.name, modifier = Modifier.weight(1f))
-                        androidx.compose.material3.TextButton(
+                        Text(
+                            source.name,
+                            modifier = Modifier.weight(1f),
+                            color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantActions
+                        )
+                        IconButton(
                             onClick = {
                                 excludedSourceIds = excludedSourceIds - source.id
                                 order = order + source.id
-                            },
-                            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                                contentColor = androidx.compose.ui.graphics.Color(0xFF43A047)
-                            )
+                            }
                         ) {
-                            androidx.compose.material3.Text("+", fontSize = 22.sp)
+                            top.yukonga.miuix.kmp.basic.Icon(
+                                imageVector = MiuixIcons.Add,
+                                contentDescription = stringResource(R.string.field_priority_template_restore_source),
+                                tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary
+                            )
                         }
                     }
                 }

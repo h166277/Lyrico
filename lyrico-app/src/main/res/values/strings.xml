@@ -49,6 +49,7 @@
     <string name="field_priority_template_move_down">Down</string>
     <string name="field_priority_template_global_order">Follow global plugin order</string>
     <string name="field_priority_template_selector">Field priority template</string>
+    <string name="field_priority_template_restore_source">Restore plugin</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
 
