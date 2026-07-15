@@ -1,8 +1,11 @@
 package com.lonx.lyrico.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -137,8 +140,19 @@ internal fun TemplateNameDialog(
                 onValueChange = onValueChange,
                 modifier = Modifier.padding(top = 12.dp)
             )
-            androidx.compose.material3.TextButton(onClick = onConfirm, enabled = value.isNotBlank()) {
-                androidx.compose.material3.Text(stringResource(R.string.confirm))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                androidx.compose.material3.TextButton(
+                    onClick = onConfirm,
+                    enabled = value.isNotBlank(),
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary
+                    )
+                ) {
+                    androidx.compose.material3.Text(stringResource(R.string.confirm))
+                }
             }
         }
     }

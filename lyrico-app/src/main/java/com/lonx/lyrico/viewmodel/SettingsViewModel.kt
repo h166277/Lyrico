@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 
 data class SettingsUiState(
+    val isLoaded: Boolean = false,
     val lyricFormat: LyricFormat = LyricFormat.VERBATIM_LRC,
     val separator: ArtistSeparator = ArtistSeparator.SLASH,
     val romaEnabled: Boolean = false,
@@ -106,6 +107,7 @@ class SettingsViewModel(
         _categorizedCacheSize
     ) { base, cacheMap ->
         SettingsUiState(
+            isLoaded = true,
             lyricFormat = base.lyric.format,
             romaEnabled = base.lyric.showRomanization,
             lyricLineOrder = base.lyric.normalizedLineOrder,
@@ -144,14 +146,18 @@ class SettingsViewModel(
     }
     fun refreshCache(context: Context) {
         viewModelScope.launch {
-            val sizes = CacheManager.getCategorizedCacheSize(context)
-            _categorizedCacheSize.value = sizes
+            _categorizedCacheSize.value = withContext(Dispatchers.IO) {
+                CacheManager.getCategorizedCacheSize(context)
+            }
         }
     }
     fun clearCache(context: Context) {
         viewModelScope.launch {
-            CacheManager.clearAllCache(context)
-            refreshCache(context)
+            val sizes = withContext(Dispatchers.IO) {
+                CacheManager.clearAllCache(context)
+                CacheManager.getCategorizedCacheSize(context)
+            }
+            _categorizedCacheSize.value = sizes
         }
     }
 

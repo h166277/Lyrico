@@ -383,11 +383,13 @@ fun SettingsScreen(
                         summary = folderSummary,
                         onClick = { navigator.navigate(FolderManagerDestination()) }
                     )
-                    SwitchPreference(
-                        title = stringResource(R.string.ignore_short_audio),
-                        checked = ignoreShortAudio,
-                        onCheckedChange = { settingsViewModel.setIgnoreShortAudio(it) }
-                    )
+                    if (settingsUiState.isLoaded) {
+                        SwitchPreference(
+                            title = stringResource(R.string.ignore_short_audio),
+                            checked = ignoreShortAudio,
+                            onCheckedChange = { settingsViewModel.setIgnoreShortAudio(it) }
+                        )
+                    }
                 }
             }
 
@@ -413,22 +415,24 @@ fun SettingsScreen(
                             )
                         }
                     )
-                    SliderPreference(
-                        title = stringResource(R.string.search_limit),
-                        showKeyPoints = true,
-                        valueText = tempSearchPageSize.intValue.toString(),
-                        summary = stringResource(R.string.search_limit_tip),
-                        valueRange = minSearchSize.toFloat()..maxSearchSize.toFloat(),
-                        steps = maxSearchSize - minSearchSize - 1,
-                        value = tempSearchPageSize.intValue.toFloat(),
-                        hapticEffect = SliderDefaults.SliderHapticEffect.Step,
-                        onValueChange = {
-                            tempSearchPageSize.intValue = it.roundToInt()
-                        },
-                        onValueChangeFinished = {
-                            settingsViewModel.setSearchPageSize(tempSearchPageSize.intValue)
-                        }
-                    )
+                    if (settingsUiState.isLoaded) {
+                        SliderPreference(
+                            title = stringResource(R.string.search_limit),
+                            showKeyPoints = true,
+                            valueText = tempSearchPageSize.intValue.toString(),
+                            summary = stringResource(R.string.search_limit_tip),
+                            valueRange = minSearchSize.toFloat()..maxSearchSize.toFloat(),
+                            steps = maxSearchSize - minSearchSize - 1,
+                            value = tempSearchPageSize.intValue.toFloat(),
+                            hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                            onValueChange = {
+                                tempSearchPageSize.intValue = it.roundToInt()
+                            },
+                            onValueChangeFinished = {
+                                settingsViewModel.setSearchPageSize(tempSearchPageSize.intValue)
+                            }
+                        )
+                    }
                 }
             }
 
